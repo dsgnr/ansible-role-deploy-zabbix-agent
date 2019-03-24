@@ -1,0 +1,15 @@
+---
+
+- name: Add zabbix-agent .deb for Ubuntu 16.04
+  apt:
+    deb: http://repo.zabbix.com/zabbix/4.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_4.0-1+xenial_all.deb
+  when: ansible_distribution == 'Ubuntu' and ansible_distribution_version == '16.04'
+
+- name: Add zabbix-agent .deb for Ubuntu 18.04
+  apt:
+    deb: http://repo.zabbix.com/zabbix/4.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_4.0-1+bionic_all.deb
+  when: ansible_distribution == 'Ubuntu' and ansible_distribution_version == '18.04'
+
+- name: Update package cache
+  apt:
+    update_cache: yes

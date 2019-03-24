@@ -1,0 +1,69 @@
+---
+
+- name: Create C:\Temp
+  win_file:
+    path: C:\Temp
+    state: directory
+
+- name: Create C:\Program Files\zabbix-agent
+  win_file:
+    path: C:\Program Files\zabbix-agent
+    state: directory
+
+- name: Download the Zabbix Agent
+  win_get_url:
+    url: https://www.zabbix.com/downloads/3.4.6/zabbix_agents_3.4.6.win.zip
+    dest: C:\Temp\zabbix-agent.zip
+
+- name: Unzip zabbix-agent
+  win_unzip:
+    src: C:\Temp\zabbix-agent.zip
+    dest: C:\Program Files\zabbix-agent
+
+- name: Send Zabbix configuration
+  win_template:
+    src: templates/zabbix_agentd.win.conf.j2
+    dest: "C:\\Program Files\\zabbix-agent\\conf\\zabbix_agentd.win.conf"
+
+- name: Open the firewall for the Zabbix Agent
+  win_firewall_rule:
+    name: "Zabbix Agent"
+    localport: 10050
+    action: allow
+    direction: in
+    protocol: tcp
+    state: present
+    enabled: yes
+
+- name: Install and start the Zabbix Agent
+  win_command: "{{ item }}"
+  with_items:
+    - "\"C:\\Program Files\\zabbix-agent\\bin\\win64\\zabbix_agentd.exe\" --config \"C:\\Program Files\\zabbix-agent\\conf\\zabbix_agentd.win.conf\" --install"
+    - "\"C:\\Program Files\\zabbix-agent\\bin\\win64\\zabbix_agentd.exe\" --start"
+
+- name: Get primary IP address
+  win_shell: (Get-NetAdapter -Name "Ethernet0" | Get-NetIPAddress -AddressFamily IPv4).IPAddress
+  register: primary_ip
+
+- name: Create a new host or update an existing host's info
+  local_action:
+    module: zabbix_host
+    server_url: "{{ zabbix_server_url }}"
+    login_user: apiuser
+    login_password: "{{ vault_zabbix_api_password }}"
+    host_name: "{{ ansible_fqdn }}"
+    visible_name: "{{ ansible_hostname }}"
+    host_groups:
+      - "{{ zabbix_windows_host_groups }}"
+    link_templates:
+      - "{{ zabbix_windows_linked_templates }}"
+    status: enabled
+    state: present
+    inventory_mode: automatic
+    interfaces:
+      - type: 1
+        main: 1
+        useip: 0
+        ip: "{{ primary_ip.stdout|trim }}"
+        dns: "{{ ansible_fqdn }}"
+        port: "{{ zabbix_listen_port }}"

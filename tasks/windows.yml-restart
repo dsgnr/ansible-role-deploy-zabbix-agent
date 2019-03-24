@@ -1,0 +1,15 @@
+---
+- name: Restart a service
+  win_service:
+    name: "Zabbix Agent"
+    state: stopped
+
+- name: Send Zabbix configuration
+  win_template:
+    src: templates/zabbix_agentd.win.conf.j2
+    dest: "C:\\Program Files\\zabbix-agent\\conf\\zabbix_agentd.win.conf"
+
+- name: Restart a service
+  win_service:
+    name: "Zabbix Agent"
+    state: started
