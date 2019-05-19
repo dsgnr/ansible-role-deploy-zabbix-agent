@@ -4,17 +4,3 @@
   yum:
     name: http://repo.zabbix.com/zabbix/4.0/rhel/7/x86_64/zabbix-agent-4.0.0-2.el7.x86_64.rpm
     state: present
-
-- name: Install the latest version of zabbix-agent
-  yum:
-    name: zabbix-agent
-    state: present
-
-- name: Enable zabbix-agent
-  systemd:
-    name: zabbix-agent
-    enabled: yes
-    masked: no
-
-- name: Make sure zabbix-agent is running
-  systemd: state=started name=zabbix-agent

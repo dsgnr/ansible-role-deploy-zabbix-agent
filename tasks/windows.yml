@@ -48,8 +48,9 @@
 - name: Create a new host or update an existing host's info
   local_action:
     module: zabbix_host
+    validate_certs: false
     server_url: "{{ zabbix_server_url }}"
-    login_user: apiuser
+    login_user: "{{ zabbix_server_api_user }}"
     login_password: "{{ vault_zabbix_api_password }}"
     host_name: "{{ ansible_fqdn }}"
     visible_name: "{{ ansible_hostname }}"

@@ -15,6 +15,13 @@
     name: zabbix-agent
     state: present
 
+- name: Enable and start zabbix-agent
+  systemd:
+    name: zabbix-agent
+    enabled: yes
+    masked: no
+    state: started
+
 - name: Update the zabbix-agent configuration
   become: yes
   lineinfile:
@@ -36,86 +43,8 @@
   notify:
     - Restart zabbix-agent
 
-- name: Enable zabbix-agent to start on boot
-  service:
-    name: zabbix-agent
-    enabled: yes
-
-- name: Create /etc/zabbix/zabbix_agentd.d
-  file:
-    path: /etc/zabbix/zabbix_agentd.d
-    state: directory
-
-- name: Check for /root/.my.cnf
-  stat:
-    path: /root/.my.cnf
-  register: mysql_creds
-
-- name: Create /var/lib/zabbix
-  file:
-    path: /var/lib/zabbix
-    state: directory
-  when: "'mariadb.service' in ansible_facts.services or 'mysql.service' in ansible_facts.services and mysql_creds.stat is exists"
-
-- name: Copy file between directories on a remote server
-  copy:
-    src: /root/.my.cnf
-    dest: /var/lib/zabbix/.my.cnf
-    remote_src: yes
-  when: "'mariadb.service' in ansible_facts.services or 'mysql.service' in ansible_facts.services and mysql_creds.stat is exists"
-
-# Disk monitoring
-- name: Install the package Sysstat
-  package:
-    name: sysstat
-    state: present
-
-- name: Create /etc/zabbix/scripts
-  file:
-    path: /etc/zabbix/scripts
-    state: directory
-
-- name: Copy disk stat conf
-  copy:
-    src: ../templates/iostat.sh
-    dest: /etc/zabbix/scripts/iostat.sh
-    force: no
-    owner: root
-    group: zabbix
-    mode: a+x
-
-- name: Copy disk stat conf
-  copy:
-    src: ../templates/userparameter_iostat.conf
-    dest: /etc/zabbix/zabbix_agentd.d/userparameter_iostat.conf
-    force: no
-    owner: root
-    group: root
-    mode: a+x
-
-- name: Clean old Zabbix configs
-  file:
-    path: "{{ item }}"
-    state: absent
-  with_items:
-    - /usr/local/zabbix/bin/lld-disks.py
-    - /etc/zabbix/zabbix_agentd.d/userparameter_diskstats.conf
-    - /usr/local/zabbix/bin
-
-### Send Nginx Stats
-- name: Copy Nginx stats
-  template:
-    src: templates/nginx_status.conf.j2
-    dest: /etc/nginx/conf.d/nginx_status.conf
-  when: "'nginx.service' in ansible_facts.services"
-
-- name: Copy Redis configuration
-  copy:
-    src: templates/userparameter_redis.conf
-    dest: /etc/zabbix/zabbix_agentd.d/userparameter_redis.conf
-  when: "'redis.service' in ansible_facts.services"
-  notify:
-    - Restart zabbix-agent
+- name: Add custom Linux checks
+  include_tasks: linux-monitoring-checks.yml
 
 - name: Create a new host or update an existing host's info
   local_action:
@@ -126,8 +55,9 @@
     host_name: "{{ inventory_hostname }}"
     visible_name: "{{ ansible_hostname }}"
     force: yes
+    validate_certs: false
     host_groups:
-      - "{{ zabbix_host_groups }}"
+      - "{{ zabbix_linux_host_groups }}"
     link_templates:
       - Template OS Linux
       - Template App SSH Service
@@ -152,3 +82,5 @@
         ip: "{{ ansible_default_ipv4.address }}"
         dns: "{{ inventory_hostname }}"
         port: "{{ zabbix_listen_port }}"
+  notify:
+    - Restart zabbix-agent

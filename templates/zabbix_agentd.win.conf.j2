@@ -83,7 +83,7 @@ LogFile=c:\zabbix_agentd.log
 # Default:
 # Server=
 
-Server=127.0.0.1,zabbix.handsoff.cloud, v-cent007.handsoff.cloud
+Server= {{ zabbix_listen_server }}
 
 
 ### Option: ListenPort
@@ -125,7 +125,7 @@ ListenPort=10050
 # Default:
 # ServerActive=
 
-ServerActive=zabbix.handsoff.cloud, v-cent007.handsoff.cloud
+ServerActive= {{ zabbix_listen_server_active }}
 
 ### Option: Hostname
 #	Unique, case sensitive hostname.
